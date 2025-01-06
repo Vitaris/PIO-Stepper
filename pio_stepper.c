@@ -24,24 +24,26 @@ bool blink_500ms;
 bool lcd_refresh;
 
 void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq);
+void update_blink(PIO pio, uint sm, uint freq);
 
 void core1_entry() {
 
     // LCD
     lcd = lcd_create(2, 3, 4, 5, 6, 7, 8, 16, 2);
-    int a = 0;
+    int enc_old = 0;
     while (1)
     {
         if (lcd_refresh == true)
-        { 
-            string2LCD(lcd, 0, 0, "Abc");
-            int2LCD(lcd, 0, 1, 6, a++); 
-            // float2LCD(lcd, 0, 2, 8, cutter->servo_0->servo_position);
+        {
+            int enc = quadrature_encoder_get_count(pio1, 0);
+            string2LCD(lcd, 0, 0, "Enc:");
+            string2LCD(lcd, 13, 0, "rev");
+            string2LCD(lcd, 13, 1, "r/s");
+            // int2LCD(lcd, 0, 1, 6, a++); 
+            float2LCD(lcd, 4, 0, 8, (float)enc / 8000.0);
+            float2LCD(lcd, 4, 1, 8, (float)(enc - enc_old) * 10 / 8000.0);
 
-            if (a > 100000) {
-                a = 0;
-            }
-
+            enc_old = enc;
             lcd_refresh = false;
         }
     }
@@ -61,12 +63,16 @@ int main() {
     // cutter = create_machine();
 
     // Initialize
-    stdio_init_all();
+    // stdio_init_all();
 
 
     PIO pio = pio0;
     uint offset = pio_add_program(pio, &blink_program);
-    blink_pin_forever(pio, 0, offset, 1, 1);
+    blink_pin_forever(pio, 0, offset, 25, 2);
+    blink_pin_forever(pio, 1, offset, 0, 125000);
+
+    pio_add_program(pio1, &quadrature_encoder_program);
+    quadrature_encoder_program_init(pio1, 0, 0, 16, 0);
 
     // Timer for servo control
     add_repeating_timer_ms(-1, servo_timer_callback, NULL, &servo_timer);
@@ -90,9 +96,13 @@ void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq) {
     blink_program_init(pio, sm, offset, pin);
     pio_sm_set_enabled(pio, sm, true);
 
-    printf("Blinking pin %d at %d Hz\n", pin, freq);
+    // printf("Blinking pin %d at %d Hz\n", pin, freq);
 
     // PIO counter program takes 3 more cycles in total than we pass as
     // input (wait for n + 1; mov; jmp)
+    pio->txf[sm] = (clock_get_hz(clk_sys) / (2 * freq)) - 3;
+}
+
+void update_blink(PIO pio, uint sm, uint freq) {
     pio->txf[sm] = (clock_get_hz(clk_sys) / (2 * freq)) - 3;
 }
