@@ -174,7 +174,7 @@ void float2LCD(lcd_t lcd, uint8_t x, uint8_t y, uint8_t max_length, float number
 {
     gotoxy(lcd, x, y); 
     char* str;
-    asprintf (&str, "%*.2f", max_length, number);
+    asprintf (&str, "%*.4f", max_length, number);
     writeText(lcd, str);
     free(str);
 }
