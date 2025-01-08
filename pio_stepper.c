@@ -78,7 +78,7 @@ int main() {
     add_repeating_timer_ms(-1, servo_timer_callback, NULL, &servo_timer);
 
     // 100ms LCD refresh timer
-    add_repeating_timer_ms(100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
+    add_repeating_timer_ms(-100, LCD_refresh_timer_callback, NULL, &LCD_refresh_timer);
     
     // Launch core1
     multicore_launch_core1(core1_entry);
