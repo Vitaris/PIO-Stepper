@@ -8,6 +8,7 @@
 #include "hardware/clocks.h"
 #include "quadrature_encoder.pio.h"
 #include "blink.pio.h"
+#include "pulser.pio.h"
 
 #include "lcd.h"
 #include "button.h"
@@ -26,9 +27,12 @@ bool lcd_refresh;
 void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq);
 void update_blink(PIO pio, uint sm, uint freq);
 
+PIO pio = pio0;
+
 void core1_entry() {
 
     // LCD
+    int a = 25;
     lcd = lcd_create(2, 3, 4, 5, 6, 7, 8, 16, 2);
     int enc_old = 0;
     while (1)
@@ -42,6 +46,11 @@ void core1_entry() {
             // int2LCD(lcd, 0, 1, 6, a++); 
             float2LCD(lcd, 4, 0, 8, (float)enc / 8000.0);
             float2LCD(lcd, 4, 1, 8, (float)(enc - enc_old) * 10 / 8000.0);
+
+            pio->txf[0] = a--;
+            if (a <= 0) {
+                a = 25;
+                }
 
             enc_old = enc;
             lcd_refresh = false;
@@ -66,10 +75,11 @@ int main() {
     // stdio_init_all();
 
 
-    PIO pio = pio0;
-    uint offset = pio_add_program(pio, &blink_program);
-    blink_pin_forever(pio, 0, offset, 25, 2);
-    blink_pin_forever(pio, 1, offset, 0, 125000);
+    
+    uint offset = pio_add_program(pio, &pulser_program);
+    pulser_program_init(pio0, 0, offset, 0);
+    // blink_pin_forever(pio, 0, offset, 25, 2);
+    // blink_pin_forever(pio, 1, offset, 0, 125000);
 
     pio_add_program(pio1, &quadrature_encoder_program);
     quadrature_encoder_program_init(pio1, 0, 0, 16, 0);
