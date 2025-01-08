@@ -20,6 +20,7 @@ add_executable(pio_stepper
 
 pico_generate_pio_header(pio_stepper ${CMAKE_CURRENT_LIST_DIR}/quadrature_encoder.pio)
 pico_generate_pio_header(pio_stepper ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
+pico_generate_pio_header(pio_stepper ${CMAKE_CURRENT_LIST_DIR}/pulser.pio)
 
 # enable usb output, disable uart output
 pico_enable_stdio_usb(pio_stepper 1)

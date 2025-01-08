@@ -1,0 +1,36 @@
+.program pulser
+.side_set 1 opt
+
+set_low:
+    pull noblock side 0
+    mov x, osr
+    jmp !x continue_low
+    jmp config
+continue_low:
+    mov x, y
+loop_low:
+    jmp x--, loop_low
+set_high:
+    set x, 31 side 1
+loop_high:
+    jmp x--, loop_high
+    set x, 0
+    jmp set_low
+config:
+    mov y, x
+    jmp loop_low
+
+% c-sdk {
+static inline void pulser_program_init(PIO pio, uint8_t sm, uint memoffset, uint8_t step) {
+    pio_sm_config c = pulser_program_get_default_config(memoffset);
+
+    sm_config_set_out_pins(&c, step, 1);
+    pio_gpio_init(pio, step);
+    pio_sm_set_consecutive_pindirs(pio, sm, step, 1, true);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    sm_config_set_clkdiv(&c, 256);
+
+    pio_sm_init(pio, sm, memoffset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
