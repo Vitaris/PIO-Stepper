@@ -13,6 +13,7 @@ button_t create_button(uint8_t gpio_pin_num)
     // Set button GPIO to be an input
     gpio_init(gpio_pin_num);
     gpio_set_dir(gpio_pin_num, GPIO_IN);
+    gpio_pull_up(gpio_pin_num);
 
     button->gpio_pin_num = gpio_pin_num;
 
