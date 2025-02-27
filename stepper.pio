@@ -1,0 +1,58 @@
+.program stepper
+.wrap_target
+update:
+    pull block            ; Pull 32-bit word from FIFO into OSR
+    out x, 1             ; Get enable bit into x
+    out y, 1             ; Get direction bit into y
+    out isr, 30          ; Get speed value (remaining 30 bits) into ISR
+    
+    ; Set direction pin based on y
+    mov pins, y          ; Set direction pin (should be configured as pin base + 1)
+    
+    ; Check if enabled
+    jmp !x disabled      ; If enable bit is 0, jump to disabled state
+    
+running:
+    mov x, isr           ; Load delay value from ISR
+    set pins, 1          ; Set step pin high (should be configured as pin base + 0)
+delay_high:
+    jmp x-- delay_high   ; Delay for x cycles
+    
+    mov x, isr           ; Reload delay value
+    set pins, 0          ; Set step pin low
+delay_low:
+    jmp x-- delay_low    ; Delay for x cycles
+    
+    pull noblock         ; Try to get new configuration
+    jmp !osre running    ; If no new data, continue with current settings
+    jmp update     ; If new data available, process it
+    
+disabled:
+    set pins, 0          ; Ensure step pin is low while disabled
+    pull noblock         ; Check for new configuration
+    jmp !osre disabled   ; If no new data, stay disabled
+.wrap                    ; Loop back to start
+
+% c-sdk {
+static inline void stepper_program_init(PIO pio, uint sm, uint offset, uint step_pin, uint dir_pin) {
+    // Initialize step pin and direction pin
+    pio_gpio_init(pio, step_pin);
+    pio_gpio_init(pio, dir_pin);
+    
+    // Set both pins as outputs
+    pio_sm_set_consecutive_pindirs(pio, sm, step_pin, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, dir_pin, 1, true);
+    
+    // Get default config
+    pio_sm_config c = stepper_program_get_default_config(offset);
+    
+    // Configure "set" pins as step_pin
+    sm_config_set_set_pins(&c, step_pin, 1);
+    
+    // Configure "out" pins as dir_pin
+    sm_config_set_out_pins(&c, dir_pin, 1);
+    
+    // Initialize the state machine
+    pio_sm_init(pio, sm, offset, &c);
+}
+%}
