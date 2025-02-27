@@ -38,6 +38,7 @@ bool lcd_refresh;
 void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq);
 void update_blink(PIO pio, uint sm, uint freq);
 uint offset;
+uint offset_encoder;
 
 bool stepper_enable = false;
 uint speed;
@@ -51,7 +52,7 @@ void core1_entry() {
     {
         if (lcd_refresh == true)
         {
-            int enc = quadrature_encoder_get_count(pio1, 0);
+            int32_t enc = quadrature_encoder_get_count(pio1, 0);
             string2LCD(lcd, 0, 0, "Enc:");
             string2LCD(lcd, 13, 0, "rev");
             string2LCD(lcd, 13, 1, "r/s");
@@ -150,8 +151,8 @@ int main() {
     F3 = create_button(12);
     F4 = create_button(13);
 
-    pio_add_program(pio1, &quadrature_encoder_program);
-    quadrature_encoder_program_init(pio1, 0, 0, 16, 0);
+    offset_encoder = pio_add_program(pio1, &quadrature_encoder_program);
+    quadrature_encoder_program_init(pio1, 0, offset_encoder, 16, 0);
 
     stepper_enable = false;
     gpio_init(14);
